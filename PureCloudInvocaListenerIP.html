@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Invoca Listener</title>
+	
+	<link href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-WskhaSGFgHYWDcbwN70/dfYBj47jz9qbsMId/iRN3ewGhXQFZCSftd1LZCfmhktB" crossorigin="anonymous">
+
+	<style type="text/css">
+		.imglogo {
+			display: block;
+			margin-left: auto;
+			margin-right: auto;
+		}
+		
+		.imgstatus {
+			position: absolute;
+			left: 10px;
+			width: 50px;
+			padding: 10px;
+		}
+	</style>
+	<style type="text/css">
+		.row {
+			margin-top: 8px;
+		}
+	</style>
+
+	<script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+	<script src="https://sdk-cdn.mypurecloud.com/javascript/27.0.0/purecloud-platform-client-v2.min.js"></script>
+
+	<script type="text/javascript">
+		// This client ID expects the redirect URL to be http://localhost:8080/
+		let clientId = '';
+		const redirectUri = window.location.href;
+		
+		// Set purecloud objects
+		const platformClient = require('platformClient');
+		const client = platformClient.ApiClient.instance;
+		const notificationsApi = new platformClient.NotificationsApi();
+		const presenceApi = new platformClient.PresenceApi();
+		const usersApi = new platformClient.UsersApi();
+		const routingApi = new platformClient.RoutingApi();
+
+		// Set PureCloud settings
+		client.setEnvironment('mypurecloud.com');
+		client.setPersistSettings(true, 'test_app');
+
+		// Local vars
+		let presences = {};
+		let userPresenceTopic = '';
+		let userConversationTopic = '';
+		let wrapupCodes = {};
+		let webSocket = null;
+		let me, notificationChannel;
+		
+		let oauth_token = '';
+		
+		function getURLQueryParam(param){
+		  return new URLSearchParams(window.location.search).get(param);
+		}
+
+		$(document).ready(() => {
+			
+			// retrieve oauth token from url
+			if(window.location.search) {
+				oauth_token = getURLQueryParam('itoken');
+				clientId = getURLQueryParam('pcid');
+			}
+			
+			// Authenticate with PureCloud
+			client.loginImplicitGrant(clientId, redirectUri)
+				.then(() => {
+					console.log('Logged in');
+					
+					document.getElementById('statusAPI').src = 'apiReady.png';
+
+					// Get authenticated user's data, including current presence
+					return usersApi.getUsersMe({ expand: ['presence'] });
+				})
+				.then((userMe) => {
+					me = userMe;
+
+					// Create notification channel
+					return notificationsApi.postNotificationsChannels();
+				})
+				.then((channel) => {
+					console.log('channel: ', channel);
+					notificationChannel = channel;
+
+					// Set up web socket
+					webSocket = new WebSocket(notificationChannel.connectUri);
+					webSocket.onmessage = handleNotification;
+
+					// Subscribe to authenticated user's presence
+					userPresenceTopic = `v2.users.${me.id}.presence`;
+					// Subscribe to authenticated user's presence
+					userConversationTopic = `v2.users.${me.id}.conversations`;
+
+					const body = [ { id: userPresenceTopic }, {id: userConversationTopic} ];
+					return notificationsApi.putNotificationsChannelSubscriptions(notificationChannel.id, body);
+				})
+				.then((channel) => {
+					console.log('Channel subscriptions set successfully');
+					
+					var opts = { 
+					  'pageSize': 25, // Number | Page size
+					  'pageNumber': 1, // Number | Page number
+					  'sortBy': "name" // String | Sort by
+					};
+					routingApi.getRoutingWrapupcodes(opts)
+					  .then(function(data) {
+						console.log(`getRoutingWrapupcodes success! data: ${JSON.stringify(data, null, 2)}`);
+						wrapupCodes = data;
+					  })
+				})
+				.catch((err) => {
+					document.getElementById('statusAPI').src = 'apiOutOfService.png';
+					console.error(err);
+				});
+		});
+
+		// Handle incoming PureCloud notification from WebSocket
+		function handleNotification(message) {
+			// Parse notification string to a JSON object
+			const notification = JSON.parse(message.data);
+
+			// Discard unwanted notifications
+			if (notification.topicName.toLowerCase() === 'channel.metadata') {
+				// Heartbeat
+				console.info('Ignoring metadata: ', notification);
+				return;
+			} else if (notification.topicName.toLowerCase() === userPresenceTopic.toLowerCase()) {
+				console.debug('Ignoring Presence notification: ', notification);
+				return;
+			} else if (notification.topicName.toLowerCase() === userConversationTopic.toLowerCase()) {
+				console.debug('Conversation notification: ', notification);
+
+				notification.eventBody.participants.forEach(function(participant){
+					if (participant.purpose === 'agent' && participant.wrapup !== undefined) {
+						wrapupCodes.entities.forEach(function(wrapupCode){
+							if (wrapupCode.id === participant.wrapup.code){
+								console.debug("Wrapup Code = " + wrapupCode.name);
+								
+								if (participant.calls[0]['uuiData'] !== undefined) {
+								
+									// remove 
+									let uuiReceived = participant.calls[0].uuiData;
+									
+									if (uuiReceived.startsWith('tid=')) {
+										
+										let txnId = uuiReceived.replace('tid=', '');
+								
+										var payload = {
+										  "call_in_progress": true,
+										  "search": {
+											"transaction_id": txnId
+										  },
+										  "signals": [{
+											"name": wrapupCode.name,
+										  }],
+										  "custom_data": [{
+											"name": "Agent",
+											"value": me.name
+										  }],
+										  "oauth_token": oauth_token
+										};
+
+										$.ajax({
+											type: "POST",
+											url: "https://invoca.net/api/2018-02-01/transactions.json",
+											data: JSON.stringify(payload),
+											contentType: "application/json; charset=utf-8",
+											dataType: "json",
+											success: function(result) {
+												console.debug("Invoca API successfully called: " + result);
+											},
+											failure: function(result) {
+												console.debug("Invoca API failed: " + result);
+											}
+										});
+									
+									}
+								}
+							}
+						});
+					}
+				});
+			} else {
+				// Unexpected topic
+				console.warn('Unknown notification: ', notification);
+				return;
+			}
+
+		}
+	</script>
+</head>
+<body>
+	<div class="container">
+		<div class="row">
+			<div class="col-sm-12">
+				<ins>PureCloud API Status:</ins> <img id="statusAPI" alt="API Status">
+			</div>
+		</div>
+		<div class="row">
+			<div class="col-sm-12">
+				<img src="Invoca_logo.png" alt="Invoca" style="width:50%" class="imglogo">
+			</div>
+		</div>
+	</div>
+</body>
+</html>

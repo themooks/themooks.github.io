@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+		
+		<!-- Latest compiled and minified CSS -->
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+		<!-- Optional theme -->
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+
+		<script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+
+		<!-- Latest compiled and minified JavaScript -->
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+		<style type="text/css">
+			.imglogo {
+				display: block;
+				margin-left: auto;
+				margin-right: auto;
+			}
+			
+			.imgstatus {
+				position: absolute;
+				left: 10px;
+				width: 50px;
+				padding: 10px;
+			}
+		</style>
+		
+		<script>
+			let txnId = '';
+			let atoken = '';
+		
+			function getURLQueryParam(param){
+			  return new URLSearchParams(window.location.search).get(param);
+			}
+
+			function initializeWebPage() {
+			
+				if(window.location.search) {
+					txnId = getURLQueryParam('tid');
+					atoken = getURLQueryParam('atoken');
+				}
+				
+				if (txnId != null && txnId != '') {
+					retrieveData(txnId, atoken);
+				}
+			
+			};
+			
+			function retrieveData(transaction_id, a_token) {
+		
+				let queryUrl = 'https://86l08a6c9j.execute-api.us-east-1.amazonaws.com/Prod/triggers?tid=' + transaction_id;
+				
+				$.ajax({
+     				type: "GET",
+     				url: queryUrl,
+     				dataType: "json",
+     				cache: false,
+					contentType: "application/json; charset=utf-8"
+     			})
+ 				.done(function(data, status, xhr) {
+ 					console.log("Successfully retrieved Invoca Data: " + data);
+ 					let jsonData = xhr.responseJSON;
+					if (jsonData.statusCode == "200") {
+						displayData(jsonData.body);
+					} else {
+						console.log("No Invoca Data for this ID: " + transaction_id);
+					}
+ 				})
+ 				.fail(function(xhr, status, error) {
+ 					console.log("Failed to retrieve Invoca Data: " + error);
+ 				});
+				
+			}
+			
+			function displayData(data) {
+				$("#invoca_media_type").val(data.invoca_media_type);
+				$("#invoca_txn_id").val(data.invoca_txn_id);
+				$("#invoca_promo_number").val(data.invoca_promo_number);
+				$("#invoca_caller_id").val(data.invoca_caller_id);
+				$("#invoca_phone_type").val(data.invoca_phone_type);
+				$("#invoca_destination_number").val(data.invoca_destination_number);
+				$("#invoca_campaign").val(data.invoca_campaign);
+				$("#invoca_ecp_display_name").val(data.invoca_ecp_display_name);
+				$("#invoca_ecp_zip").val(data.invoca_ecp_zip);
+				$("#invoca_ecp_city").val(data.invoca_ecp_city);
+				$("#invoca_ecp_region").val(data.invoca_ecp_region);
+				$("#invoca_marketing_source").val(data.invoca_marketing_source);
+				$("#invoca_marketing_campaign").val(data.invoca_marketing_campaign);
+				$("#invoca_marketing_medium").val(data.invoca_marketing_medium);
+				$("#invoca_product_viewed").val(data.invoca_product_viewed);
+				$("#invoca_promo_description").val(data.invoca_promo_description);
+			}
+			
+		</script>
+	</head>
+	<body onload="initializeWebPage()">
+	
+		<form>
+		  <div class="form-row">
+			<img src="Invoca_logo.png" alt="Invoca" class="imglogo">
+		  </div>
+		  
+		  <div class="form-row">
+			<div class="form-group col-md-6">
+			  <label for="invoca_media_type" >Media Type</label>
+			  <input type="text" readonly class="form-control" id="invoca_media_type" value="">
+			</div>
+			<div class="form-group col-md-6">
+			  <label for="invoca_txn_id" >Txn ID</label>
+			  <input type="text" readonly class="form-control" id="invoca_txn_id" value="">
+			</div>
+		  </div>
+		  
+		  <div class="form-row">
+			<div class="form-group col-md-6">
+			  <label for="invoca_promo_number" >Promo Number</label>
+			  <input type="text" readonly class="form-control" id="invoca_promo_number" value="">
+			</div>
+			<div class="form-group col-md-6">
+			  <label for="invoca_caller_id" >Caller ID</label>
+			  <input type="text" readonly class="form-control" id="invoca_caller_id" value="">
+			</div>
+		  </div>
+		  
+		  <div class="form-row">
+			<div class="form-group col-md-6">
+			  <label for="invoca_phone_type" >Phone Type</label>
+			  <input type="text" readonly class="form-control" id="invoca_phone_type" value="">
+			</div>
+			<div class="form-group col-md-6">
+			  <label for="invoca_destination_number" >Dest. Number</label>
+			  <input type="text" readonly class="form-control" id="invoca_destination_number" value="">
+			</div>
+		  </div>
+		  
+		  <div class="form-row">
+			<div class="form-group col-md-6">
+			  <label for="invoca_campaign" >Campaign</label>
+			  <input type="text" readonly class="form-control" id="invoca_campaign" value="">
+			</div>
+			<div class="form-group col-md-6">
+			  <label for="invoca_ecp_display_name" >ECP Display Name</label>
+			  <input type="text" readonly class="form-control" id="invoca_ecp_display_name" value="">
+			</div>
+		  </div>
+		  
+		  <div class="form-row">
+			<div class="form-group col-md-6">
+			  <label for="invoca_ecp_zip" >ECP Zip</label>
+			  <input type="text" readonly class="form-control" id="invoca_ecp_zip" value="">
+			</div>
+			<div class="form-group col-md-6">
+			  <label for="invoca_ecp_city" >ECP City</label>
+			  <input type="text" readonly class="form-control" id="invoca_ecp_city" value="">
+			</div>
+		  </div>
+		  
+		  <div class="form-row">
+			<div class="form-group col-md-6">
+			  <label for="invoca_ecp_region" >ECP Region</label>
+			  <input type="text" readonly class="form-control" id="invoca_ecp_region" value="">
+			</div>
+			<div class="form-group col-md-6">
+			  <label for="invoca_marketing_source" >Mktg Source</label>
+			  <input type="text" readonly class="form-control" id="invoca_marketing_source" value="">
+			</div>
+		  </div>
+		  
+		  <div class="form-row">
+			<div class="form-group col-md-6">
+			  <label for="invoca_marketing_campaign" >Mktg Campaign</label>
+			  <input type="text" readonly class="form-control" id="invoca_marketing_campaign" value="">
+			</div>
+			<div class="form-group col-md-6">
+			  <label for="invoca_marketing_medium" >Mktg Medium</label>
+			  <input type="text" readonly class="form-control" id="invoca_marketing_medium" value="">
+			</div>
+		  </div>
+		  
+		  <div class="form-row">
+			<div class="form-group col-md-6">
+			  <label for="invoca_product_viewed" >Product Viewed</label>
+			  <input type="text" readonly class="form-control" id="invoca_product_viewed" value="">
+			</div>
+			<div class="form-group col-md-6">
+			  <label for="invoca_promo_description" >Promo Description</label>
+			  <input type="text" readonly class="form-control" id="invoca_promo_description" value="">
+			</div>
+		  </div>
+		  
+		</form>
+	
+	</body>
+</html>
