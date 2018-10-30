@@ -63,8 +63,10 @@
 			
 			// retrieve oauth token from url
 			if(window.location.search) {
-				oauth_token = getURLQueryParam('itoken');
-				clientId = getURLQueryParam('pcid');
+				let mixed_key = getURLQueryParam('pcmk');
+				let mixed_tokens = mixed_key.split('sep');
+				clientId = mixed_tokens[0].replace('pcid', '');
+				oauth_token = mixed_tokens[1].replace('itoken', '');
 			}
 			
 			// Authenticate with PureCloud

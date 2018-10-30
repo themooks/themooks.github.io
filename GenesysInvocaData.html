@@ -31,7 +31,7 @@
 		
 		<script>
 			let txnId = '';
-			let atoken = '';
+			let apiGw = '';
 		
 			function getURLQueryParam(param){
 			  return new URLSearchParams(window.location.search).get(param);
@@ -41,18 +41,18 @@
 			
 				if(window.location.search) {
 					txnId = getURLQueryParam('tid');
-					atoken = getURLQueryParam('atoken');
+					apiGw = getURLQueryParam('apigw');
 				}
 				
 				if (txnId != null && txnId != '') {
-					retrieveData(txnId, atoken);
+					retrieveData(txnId, apiGw);
 				}
 			
 			};
 			
-			function retrieveData(transaction_id, a_token) {
+			function retrieveData(transaction_id, api_gw) {
 		
-				let queryUrl = 'https://86l08a6c9j.execute-api.us-east-1.amazonaws.com/Prod/triggers?tid=' + transaction_id;
+				let queryUrl = 'https://' + api_gw + '.execute-api.us-east-1.amazonaws.com/Prod/triggers?tid=' + transaction_id;
 				
 				$.ajax({
      				type: "GET",
